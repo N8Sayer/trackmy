@@ -1,3 +1,4 @@
+console.log('Loaded up scripts.js');
 var selectList = [
 	['Brand Name', 'brand_name', "Product's Marketing Name"],
 	['Company Name', 'company_name', ''],
