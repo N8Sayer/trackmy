@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Params Test</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <style>
+    * {
+      font-family: 'Roboto', sans-serif;
+    }
+    .container {
+      max-width: 75%;
+      margin: auto;
+      padding: 0;
+    }
+    #queryAPI {
+      width: 60%;
+      margin: auto;
+      padding: 0;
+    }
+    .searchfield {
+      text-align: left;
+      margin-bottom: 15px;
+    }
+    .searchfield input {
+      display: inline-block;
+      background: #eeefed;
+      padding: 0;
+      margin: 0;
+      padding: 5px;
+      border-radius: 3px;
+      margin: 5px 0 0 0;
+      width: 100%;
+    }
+    .searchfield input .biginput {
+      height: 40px;
+      padding: 0 10px 0 10px;
+      background-color: #fff;
+      border: 1px solid #c8c8c8;
+      border-radius: 3px;
+      color: #aeaeae;
+      font-weight:normal;
+      font-size: 1.5em;
+      -webkit-transition: all 0.2s linear;
+      -moz-transition: all 0.2s linear;
+      transition: all 0.2s linear;
+    }
+    .searchfield input .biginput:focus {
+      color: #858585;
+    }
+    .buttons {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+    }
+    form {
+      border: 1px solid black;
+    }
+    .container {
+      border: 1px solid red;
+    }
+    .form-container {
+      display: flex;
+      width: 100%;
+
+    }
+    .form-button {
+      position: relative;
+      height: 25px;
+    }
+  </style>
+  </head>
+  <body>
+    <div class='container'>
+      <div class='form-container'>
+        <form id='queryAPI'>
+          <input id='form-submit' type="submit" value="Submit">
+        </form>
+        <button class='form-button' onclick='addFormField()'>Add Field</button>
+      </div>
+      <div id="outputbox">
+      </div>
+    </div>
+    <script>
+      addFormField();
+      $(function() {
+        $('#queryAPI').on("submit",function(e) {
+          e.preventDefault(); // cancel the actual submit
+          var $inputs = $('#queryAPI :input');
+          var params = {};
+          $inputs.each(function() {
+            if (this.name !== '') {
+              params[this.name] = $(this).val();
+            }
+          });
+          params.limit = 10;
+          params.skip = 0;
+          buildParams(params);
+        });
+      });
+
+      function addDropDown() {
+        var selectList = [
+          ['Brand Name','brand_name'],
+          ['Company Name','company_name'],
+          ['Device Class','device_class'],
+          ['Device Description','device_description'],
+          ['Device Name','device_name'],
+          ['ID','identifiers.id'],
+          ['Medical Specialty Description','medical_specialty_description'],
+          ['Regulation Number','regulation_number'],
+          ['Version or Model Number','version_or_model_number']
+        ];
+        var dropDown = $(document.createElement('select'));
+        selectList.forEach(function(value) {
+          var option = $(document.createElement('option'));
+          option.html(value[0]);
+          option.val(value[1]);
+          if (value[1] == 'company_name') {
+            option.attr('selected',true);
+          }
+          dropDown.append(option);
+        });
+        dropDown.attr('onchange','setName(this)');
+        return dropDown;
+      }
+
+      function setName(obj) {
+        var value = $(obj).val();
+        var input = $(obj).prev();
+        input.removeClass();
+        input.addClass(value);
+        input.attr('name',value);
+      }
+
+      function addFormField() {
+        var queryDiv = $(document.createElement('div'));
+        queryDiv.addClass('searchfield');
+        var queryInput = $(document.createElement('input'));
+        queryInput.attr('type','text');
+        queryInput.addClass('biginput');
+        queryInput.attr('autofocus','autofocus');
+        queryInput.attr('name','company_name');
+        queryDiv.append(queryInput);
+        var dropDown = addDropDown();
+        queryDiv.append(dropDown);
+
+        $('#form-submit').before(queryDiv);
+        queryInput.click();
+      }
+
+      function buildParams(params) {
+        var output = {
+          search: {},
+          limit: 0,
+          skip: 0
+        };
+        Object.keys(params).forEach(function(key) {
+          output.search[key] = params[key];
+        });
+        output.limit = params.limit;
+        output.skip = params.skip;
+      }
+    </script>
+  </body>
+</html>

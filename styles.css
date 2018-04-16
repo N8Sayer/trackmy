@@ -1,0 +1,97 @@
+* {
+	font-family: 'Roboto', sans-serif;
+}
+.container {
+	display: flex;
+	flex-flow: row wrap;
+}
+.row {
+	width: 100%;
+}
+.search {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: space-between;
+	max-width: 70%;
+	margin: auto;
+	padding: 0;
+}
+.form-button {
+	flex: 1;
+	height: 30px;
+	min-width: 120px;
+	margin-top: 5px;
+}
+#queryAPI {
+	flex: 9;
+	margin-left: 30px;
+}
+.searchfield {
+	display: flex;
+	text-align: left;
+	margin-bottom: 5px;
+	width: 100%;
+}
+.searchfield input {
+	flex: 30;
+	background: #eeefed;
+	padding: 5px;
+	border-radius: 3px;
+	margin: 5px 0 0 0;
+}
+.searchfield select {
+	flex: 10;
+	padding: 5px;
+	border-radius: 3px;
+	margin: 5px 5px 0 5px;
+}
+.searchfield button {
+	flex: 0.5;
+	margin: 5px 0 0 0;
+}
+.searchfield input .biginput {
+	width: 25vw;
+	height: 40px;
+	padding: 0 10px 0 10px;
+	background-color: #fff;
+	border: 1px solid #c8c8c8;
+	border-radius: 3px;
+	color: #aeaeae;
+	font-weight: normal;
+	font-size: 1.5em;
+	-webkit-transition: all 0.2s linear;
+	-moz-transition: all 0.2s linear;
+	transition: all 0.2s linear;
+}
+.searchfield input .biginput:focus {
+	color: #858585;
+}
+.api-results {
+	margin: 15px 0px 0px 0px;
+	padding: 0px;
+}
+.api-results li {
+	list-style-type: none;
+	margin-bottom: 10px;
+	border-bottom: 1px solid black;
+	padding: 15px;
+}
+.company-line {
+	display: flex;
+	width: 100%;
+	justify-content: space-between;
+}
+.redTitle {
+	color: red;
+	font-weight: bold;
+}
+.title {
+	font-size: 1.2em;
+	font-weight: bold;
+}
+.header {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	height: 25px;
+}

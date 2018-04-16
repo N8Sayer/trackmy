@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Recall Info</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <p id='filler'></p>
+    <script>
+    var recall = {};
+var conversionTable = {
+	brand_name: "Brand Name",
+	catalog_number: "Catalog #",
+	commercial_distribution_status: "Commercial Distribution Status",
+	company_name: "Company Name",
+	"customer_contacts-email": "Customer Contacts - Email",
+	"customer_contacts-phone": "Customer Contacts - Phone",
+	device_count_in_base_package: "Device Count",
+	device_description: "Device Description",
+	"gmdn_terms-definition": "GMDN Definition",
+	"gmdn_terms-name": "GMDN Name",
+	// "has_donation_id_number":"Has a Donation ID #?",
+	// "has_expiration_date":"Has an Expiration Date?",
+	// "has_lot_or_batch_number":"Has a Lot or Batch #?",
+	// "has_manufacturing_date":"Has Manufacturing Date?",
+	// "has_serial_number":"Has Serial Number?",
+	"identifiers-id": "ID",
+	"identifiers-issuing_agency": "Issuing Agency",
+	"identifiers-package_status": "Package Status",
+	"identifiers-quantity_per_package": "Qty per Package",
+	"identifiers-type": "Type",
+	// "identifiers-unit_of_use_id":"Unit of use ID",
+	// "is_combination_product":"Combination Product?",
+	// "is_direct_marking_exempt":"Direct Marking Exempt?",
+	// "is_hct_p":"HCT-P?",
+	// "is_kit":"Kit?",
+	// "is_labeled_as_no_nrl":"Labeled as No NRL?",
+	// "is_labeled_as_nrl":"Labeled as NRL?",
+	// "is_otc":"Over the Counter?",
+	// "is_pm_exempt":"PM Exempt?",
+	// "is_rx":"RX?",
+	// "is_single_use":"Single Use?",
+	// "is_sterile":"Sterile?",
+	// "is_sterilization_prior_use":"Requires Sterilization Prior to Use?",
+	mri_safety: "MRI Safety",
+	"openfda-device_class": "Device Class",
+	"openfda-device_name": "Device Name",
+	"openfda-medical_specialty_description": "Medical Specialty Description",
+	"openfda-regulation_number": "Regulation #",
+	"product_codes-code": "Product Code",
+	"product_codes-name": "Product Name",
+	// "publish_date":"Publish Date",
+	// "record_status":"Record Status",
+	version_or_model_number: "Version or Model #"
+};
+
+console.log(sessionStorage);
+var output = [];
+var productCodes = "";
+Object.keys(sessionStorage).forEach(function(key) {
+	if (key.match(/-/g) !== null && key.match(/customer_contacts/g) === null && key.match(/gmdn_terms/g) === null) {
+		var split = key.split("-");
+		var headerName = `${split[0]}-${split[2]}`;
+		if (split[0] == "product_codes" && split[2] == "code") {
+			productCodes += sessionStorage[key] + "+";
+		}
+		var headerValue = conversionTable[headerName];
+	} else {
+		var headerValue = conversionTable[key];
+	}
+	if (headerValue) {
+		output.push([headerValue, sessionStorage[key]]);
+	}
+});
+
+var display = document.getElementById("filler");
+output.forEach(function(row) {
+	display.innerHTML += `<h3>${row[0]}: </h3><span>${row[1]}</span><br>`;
+});
+productCodes = productCodes.slice(0, productCodes.length - 1);
+console.log(productCodes);
+url = `https://api.fda.gov/device/recall.json?search=product_code:${productCodes}`;
+console.log(url);
+$.ajax({
+	url: url
+}).done(function(result) {
+	console.log(result);
+	var total = result.meta.results.total;
+	var recallResults = {};
+	if (total < 100) {
+		$.ajax({
+			url: url + `&limit=100`
+		}).done(function(allResults) {
+			console.log(allResults);
+			allResults.results.forEach(function(result) {
+				if (result.k_numbers.length > 1) {
+				} else if (result.k_numbers.length === 1) {
+				}
+				var kUrl = "https://api.fda.gov/device/510k.json";
+			});
+		});
+	} else {
+		for (var x = 0; x < total; x += 100) {
+			$.ajax({
+				url: url + "&limit=100" + `&skip=${x}`
+			}).done(function(output) {
+				output.results.forEach(function(result) {
+					var regNumber = result.registration.registration_number;
+					if (regResults[regNumber]) {
+						result.k_number ? regResults[regNumber].k_number.push(result.k_number) : null;
+						result.pma_number ? regResults[regNumber].pma_number.push(result.pma_number) : null;
+					} else {
+						regResults[regNumber] = {
+							k_number: result.k_number ? [result.k_number] : [],
+							pma_number: result.pma_number ? [result.pma_number] : []
+						};
+					}
+				});
+				console.log(regResults);
+			});
+		}
+	}
+});
+
+var regUrl = `https://api.fda.gov/device/registrationlisting.json?search=`;
+var company = sessionStorage.company_name;
+regUrl += `registration.owner_operator.firm_name:"${company.replace(/,/g, "").replace(/\s/g, "+")}"+AND+products.product_code:${productCodes}`;
+$.ajax({
+	url: regUrl
+}).done(function(results) {
+	console.log("registration");
+	console.log(results);
+	var total = results.meta.results.total;
+	var regResults = {};
+	if (total < 100) {
+		$.ajax({
+			url: regUrl + "&limit=100"
+		}).done(function(output) {
+			console.log(output);
+			output.results.forEach(function(result) {
+				var regNumber = result.registration.registration_number;
+				if (regResults[regNumber]) {
+					result.k_number ? regResults[regNumber].k_number.push(result.k_number) : null;
+					result.pma_number ? regResults[regNumber].pma_number.push(result.pma_number) : null;
+				} else {
+					regResults[regNumber] = {
+						k_number: result.k_number ? [result.k_number] : [],
+						pma_number: result.pma_number ? [result.pma_number] : []
+					};
+				}
+			});
+			console.log(regResults);
+		});
+	} else {
+		console.log(Math.round(total / 100));
+		for (var x = 0; x < total; x += 100) {
+			$.ajax({
+				url: regUrl + "&limit=100" + `&skip=${x}`
+			}).done(function(regOutput) {
+				regOutput.results.forEach(function(result) {
+					var regNumber = result.registration.registration_number;
+					if (regResults[regNumber]) {
+						result.k_number ? regResults[regNumber].k_number.push(result.k_number) : null;
+						result.pma_number ? regResults[regNumber].pma_number.push(result.pma_number) : null;
+					} else {
+						regResults[regNumber] = {
+							k_number: result.k_number ? [result.k_number] : [],
+							pma_number: result.pma_number ? [result.pma_number] : []
+						};
+					}
+				});
+			});
+		}
+		console.log(["regResults", regResults]);
+	}
+});
+</script>
+  </body>
+</html>

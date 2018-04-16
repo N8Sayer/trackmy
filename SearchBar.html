@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <style>
+      * {
+        font-family: 'Roboto', sans-serif;
+      }
+      .container {
+        display: flex;
+        flex-flow: row wrap;
+      }
+      .row {
+        width: 100%;
+      }
+      .search {
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: space-between;
+        max-width: 70%;
+        margin: auto;
+        padding: 0;
+      }
+      .form-button {
+        flex: 1;
+        height: 30px;
+        min-width: 120px;
+        margin-top: 5px;
+      }
+      #queryAPI {
+        flex: 9;
+        margin-left: 30px;
+      }
+      .searchfield {
+        display: flex;
+        text-align: left;
+        margin-bottom: 5px;
+        width: 100%;
+      }
+      .searchfield input {
+        flex: 30;
+        background: #eeefed;
+        padding: 5px;
+        border-radius: 3px;
+        margin: 5px 0 0 0;
+      }
+      .searchfield select {
+        flex: 10;
+        padding: 5px;
+        border-radius: 3px;
+        margin: 5px 5px 0 5px;
+      }
+      .searchfield button {
+        flex: 0.5;
+        margin: 5px 0 0 0;
+      }
+      .searchfield input .biginput {
+        height: 40px;
+        padding: 0 10px 0 10px;
+        background-color: #fff;
+        border: 1px solid #c8c8c8;
+        border-radius: 3px;
+        color: #aeaeae;
+        font-weight: normal;
+        font-size: 1.5em;
+        -webkit-transition: all 0.2s linear;
+        -moz-transition: all 0.2s linear;
+        transition: all 0.2s linear;
+      }
+      .searchfield input .biginput:focus {
+        color: #858585;
+      }
+      .api-results {
+        margin: 15px 0px 0px 0px;
+        padding: 0px;
+      }
+      .api-results li {
+        list-style-type: none;
+        margin-bottom: 10px;
+        border-bottom: 1px solid black;
+        padding: 15px;
+      }
+      .company-line {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+      }
+      .redTitle {
+        color: red;
+        font-weight: bold;
+      }
+      .title {
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+      .header {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        height: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='container'>
+      <div class='row search'>
+        <button class='form-button' onclick='addFormField()'>Add Search Field</button>
+        <form id='queryAPI'>
+          <input id='form-submit' type="submit" value="Search">
+        </form>
+      </div>
+      <div class='row' id="outputbox">
+      </div>
+    </div>
+    <script>
+    var selectList = [
+	['Brand Name', 'brand_name', "Product's Marketing Name"],
+	['Company Name', 'company_name', ''],
+	['Device Class', 'device_class', '1, 2, or 3'],
+	['Device Description', 'device_description', ''],
+	['Device Name', 'device_name', ''],
+	['ID', 'identifiers.id', '14 digit # starting with "00"'],
+	['Medical Specialty Description', 'medical_specialty_description', 'e.g. Orthopedic, Opthalmic'],
+	['Regulation Number', 'regulation_number', 'e.g. 888.3070, 868.5260'],
+	['Version or Model Number', 'version_or_model_number', '']
+];
+$(document).ready(function() {
+	currentPage = 0;
+	currentTotal = 0;
+	baseUrl = '';
+	results = [];
+	$('#queryAPI').on('submit', function(e) {
+		e.preventDefault();
+		var $inputs = $('#queryAPI :input');
+		var params = {};
+		$inputs.each(function() {
+			if (this.name !== '') {
+				params[this.name] = $(this).val();
+			}
+		});
+		var outputParams = buildParams(params);
+		console.log(outputParams);
+		checkAPI(outputParams);
+		storeParams(outputParams);
+	});
+	$(document).keypress(function(e) {
+		if (e.which == '13') {
+			e.preventDefault();
+			$('#queryAPI').submit();
+		}
+	});
+	var prevSearchTerms = [];
+	Object.keys(sessionStorage).forEach(function(key) {
+		if (key.search(/^search-/) !== -1) {
+			prevSearchTerms.push([key.slice(7), sessionStorage.getItem(key)]);
+		}
+	});
+	if (prevSearchTerms.length > 0) {
+		prevSearchTerms.forEach(function(term) {
+			var formDiv = addFormField(term[1], term[0]);
+		});
+		$('#queryAPI').submit();
+	} else {
+		addFormField();
+	}
+});
+function storeParams(params) {
+	Object.keys(sessionStorage).forEach(function(sessionKey) {
+		if (sessionKey.search(/^search-/) !== -1) {
+			sessionStorage.removeItem(sessionKey);
+		}
+	});
+	Object.keys(params.search).forEach(function(key) {
+		sessionStorage.setItem('search-' + key, params.search[key]);
+	});
+}
+function addDropDown(type) {
+	var dropDown = $(document.createElement('select'));
+	selectList.forEach(function(value) {
+		var option = $(document.createElement('option'));
+		option.html(value[0]);
+		option.val(value[1]);
+		if (value[1] === type) {
+			option.attr('selected', true);
+		}
+		dropDown.append(option);
+	});
+	dropDown.attr('onchange', 'setName(this)');
+	return dropDown;
+}
+function setName(obj) {
+	var value = $(obj).val();
+	var input = $(obj).prev();
+	input.attr('name', value);
+	selectList.forEach(function(options) {
+		if (options[1] == value) {
+			input.attr('placeholder', options[2]);
+		}
+	});
+}
+function addFormField(inputVal, type) {
+	var queryDiv = $(document.createElement('div'));
+	queryDiv.addClass('searchfield');
+
+	var queryInput = $(document.createElement('input'));
+	queryInput.attr('type', 'text');
+	queryInput.addClass('biginput');
+	if (inputVal) {
+		queryInput.attr('name', type);
+		selectList.forEach(function(selection) {
+			if (selection[1] === type) {
+				queryInput.attr('placeholder', selection[0]);
+			}
+		});
+		queryInput.val(inputVal);
+	} else {
+		queryInput.attr('autofocus', 'autofocus');
+		queryInput.attr('name', 'company_name');
+		queryInput.attr('placeholder', 'Company Name');
+	}
+	if (type) {
+		var dropDown = addDropDown(type);
+	} else {
+		var dropDown = addDropDown('company_name');
+	}
+	var closeButton = $(document.createElement('button'));
+	closeButton.addClass('close-button');
+	closeButton.attr('onclick', 'removeFormField(this)');
+	closeButton.html('X');
+
+	queryDiv.append(queryInput, dropDown, closeButton);
+	$('#form-submit').before(queryDiv);
+	queryInput.click();
+	checkSearchCount();
+}
+function checkSearchCount() {
+	var searchTerms = $('.searchfield');
+	if (searchTerms.length > 1) {
+		$('.close-button').css('display', 'inline');
+	} else {
+		$('.close-button').css('display', 'none');
+	}
+}
+function removeFormField(obj) {
+	$(obj)
+		.parent()
+		.remove();
+	checkSearchCount();
+}
+function buildParams(params) {
+	var output = {
+		search: {},
+		limit: 10,
+		skip: 0
+	};
+	Object.keys(params).forEach(function(key) {
+		output.search[key] = params[key];
+	});
+	return output;
+}
+function storeValue(index) {
+	Object.keys(results[index]).forEach(function(key) {
+		switch (key) {
+			case 'sterilization':
+				var array = results[index][key];
+				Object.keys(array).forEach(function(keyValues) {
+					sessionStorage.setItem(keyValues, array[keyValues]);
+					console.log([keyValues, array[keyValues]]);
+				});
+				break;
+			case 'identifiers':
+				var array = results[index][key];
+				array.forEach(function(subObject, index) {
+					Object.keys(subObject).forEach(function(subKey) {
+						sessionStorage.setItem(`identifiers-${index}-${subKey}`, subObject[subKey]);
+						console.log([`identifiers-${index}-${subKey}`, subObject[subKey]]);
+					});
+				});
+				break;
+			case 'product_codes':
+				var array = results[index][key];
+				array.forEach(function(subObject, index) {
+					Object.keys(subObject).forEach(function(subKey) {
+						if (typeof subObject[subKey] == 'object') {
+							var openfda = subObject[subKey];
+							Object.keys(openfda).forEach(function(openfdaKey) {
+								sessionStorage.setItem(`openfda-${index}-${openfdaKey}`, openfda[openfdaKey]);
+								console.log([`openfda-${index}-${openfdaKey}`, openfda[openfdaKey]]);
+							});
+						} else {
+							sessionStorage.setItem(`product_codes-${index}-${subKey}`, subObject[subKey]);
+							console.log([`product_codes-${index}-${subKey}`, subObject[subKey]]);
+						}
+					});
+				});
+				break;
+			case 'customer_contacts':
+				var array = results[index][key][0];
+				Object.keys(array).forEach(function(subKey) {
+					sessionStorage.setItem(`customer_contacts-${subKey}`, array[subKey]);
+					console.log([`customer_contacts-${subKey}`, array[subKey]]);
+				});
+				break;
+			case 'gmdn_terms':
+				var array = results[index][key][0];
+				Object.keys(array).forEach(function(subKey) {
+					sessionStorage.setItem(`gmdn_terms-${subKey}`, array[subKey]);
+					console.log([`gmdn_terms-${subKey}`, array[subKey]]);
+				});
+				break;
+			default:
+				sessionStorage.setItem(key, results[index][key]);
+				console.log([key, results[index][key]]);
+		}
+	});
+	window.location.assign('Recall.html');
+}
+function checkAPI(params, url) {
+	// console.log(url);
+	if (!url) {
+		var url = `https://api.fda.gov/device/udi.json?`;
+		paramOutput = [];
+		Object.keys(params).forEach(function(key) {
+			if (key == 'search') {
+				url += 'search=';
+				Object.keys(params[key]).forEach(function(value) {
+					if (params[key][value] !== '') {
+						paramOutput.push(`${value}:"${params[key][value]}"`);
+					}
+				});
+				if (paramOutput.length > 1) {
+					url += paramOutput.join('+AND+');
+				} else if (paramOutput.length === 1) {
+					url += paramOutput[0];
+				}
+				baseUrl = url;
+			} else if (key == 'skip') {
+				if (params[key] !== 0) {
+					url += `&${key}=${params[key]}`;
+				}
+			}
+		});
+	} else {
+		url += `&skip=${params.skip}`;
+	}
+	console.log(url);
+	$.ajax({
+		url: url + '&limit=10'
+	})
+		.done(function(result) {
+			// console.log(result.meta.results);
+			currentPage = result.meta.results.skip;
+			$('#outputbox').html(dataDisplayBuilder(result, baseUrl));
+		})
+		.fail(function(error) {
+			$('#outputbox').html(error.responseJSON.error.message);
+		});
+}
+function dataDisplayBuilder(result, url) {
+	skipCount = currentPage;
+	totalCount = result.meta.results.total;
+	var containerDiv = $(document.createElement('div'));
+	var forwardButton = $(document.createElement('button'));
+	forwardButton.html('▶');
+	forwardButton.attr('onclick', `checkAPI({search:{},skip:${skipCount + 10}},'${url}')`);
+	if (totalCount - skipCount < 10) {
+		forwardButton.attr('disabled', 'disabled');
+	} else {
+		forwardButton.removeAttr('disabled');
+	}
+	var backButton = $(document.createElement('button'));
+	backButton.html('◀');
+	backButton.attr('onclick', `checkAPI({search:{},skip:${skipCount - 10}},'${url}')`);
+	backButton.css('margin', '5px');
+	if (skipCount >= 10) {
+		backButton.removeAttr('disabled');
+	} else {
+		backButton.attr('disabled', 'disabled');
+	}
+	var counter = $(document.createElement('p'));
+	if (totalCount - skipCount < 10) {
+		counter.html(`Showing ${skipCount + 1} - ${totalCount} of ${totalCount}`);
+	} else {
+		counter.html(`Showing ${skipCount + 1} - ${skipCount + 10} of ${totalCount}`);
+	}
+	var data = result.results;
+	window.results = data;
+	var list = $(document.createElement('ul'));
+	list.addClass('api-results');
+	data.forEach(function(obj, index) {
+		var item = $(document.createElement('li'));
+		var title = $(document.createElement('div'));
+		title.addClass('title');
+		var description = $(document.createElement('div'));
+		description.addClass('description');
+		var companyLine = $(document.createElement('div'));
+		companyLine.addClass('company-line');
+		item.append(title, description, companyLine);
+		Object.keys(obj).forEach(function(key) {
+			switch (key) {
+				case 'brand_name':
+					var a = $(document.createElement('a'));
+					a.addClass('title');
+					a.attr('href', `#`);
+					a.attr('onclick', `storeValue(${index})`);
+					a.html(`${obj[key]} - ${obj.identifiers[0].id}`);
+					title.append(a);
+					break;
+				case 'device_description':
+					description.append(`<p>${obj[key]}</p>`);
+					break;
+				case 'company_name':
+					companyLine.append(
+						`<div><span class="redTitle">Company Name: </span><span>${obj[key]}</span></div>`
+					);
+					break;
+				case 'version_or_model_number':
+					companyLine.append(
+						`<div><span class="redTitle">Version or Model: </span><span>${obj[key]}</span></div>`
+					);
+					break;
+			}
+		});
+		list.append(item);
+	});
+	var headerDiv = $(document.createElement('div'));
+	headerDiv.addClass('header');
+	headerDiv.append(counter, backButton, forwardButton);
+	containerDiv.append(headerDiv, list);
+	containerDiv.addClass('output-container');
+	return containerDiv;
+}
+function dataSorter(data, searchTerms) {
+	var output = [];
+	data.results.forEach(function(result) {
+		var deviceClass = result.openfda.device_class;
+		var matched = false;
+		searchTerms.deviceClass.forEach(function(dClass) {
+			if (dClass == deviceClass) {
+				matched = true;
+			}
+		});
+		var regulationNumber = result.openfda.regulation_number;
+		if (matched) {
+			searchTerms.regulationNumber.forEach(function(number) {
+				if (regulationNumber == number) {
+					output.push(result);
+				}
+			});
+		}
+	});
+	return output;
+}
+</script>
+  </body>
+</html>

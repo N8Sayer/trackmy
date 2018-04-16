@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      button#plus {
+        position: absolute;
+        top: 10px;
+        right: 30px;
+        font-size: 30px;
+      }
+      button#minus {
+        position: absolute;
+        top: 10px;
+        right: 75px;
+        font-size: 30px;
+        padding: 0px 10px 2px 10px;
+      }
+      div {
+        margin-top: 25px;
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <div id='body'></div>
+    <script>
+    	var urllist = [
+    		["https://api.fda.gov/device/classification.json", 'Classification'],
+    		["https://api.fda.gov/device/event.json", 'Adverse Effect'],
+    		["https://api.fda.gov/device/510k.json", '510k'],
+    		["https://api.fda.gov/device/pma.json", 'PMA'],
+    		["https://api.fda.gov/device/registrationlisting.json", 'Registration'],
+    		["https://api.fda.gov/device/recall.json", 'Recall'],
+    		["https://api.fda.gov/device/enforcement.json", 'Recall Enforcement'],
+    		["https://api.fda.gov/device/udi.json", 'Device UDI']
+    	];
+
+      async function asyncForEach(array, callback) {
+        for (let index = 0; index < array.length; index++) {
+          await callback(array[index], index, array)
+        }
+      }
+
+      async function request(url) {
+        let result;
+        try {
+          result = await $.ajax({ url: url });
+
+          return getAllKeys(result);
+        }
+        catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function getKeyData() {
+        let keyData = [];
+        let requestData;
+        asyncForEach(urllist, async function (url) {
+          try {
+            requestData = await request(url[0]);
+          } catch (error) {
+            console.error(error);
+          }
+          keyData.push([url[1], requestData]);
+        });
+        return keyData;
+      }
+
+      var comparisons = comparisonChecker();
+      comparisons.then(function (data) {
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.style = "display: none";
+        var json = JSON.stringify(data),
+            blob = new Blob([json], {type: "octet/stream"}),
+            url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'Comparison-List';
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+
+        console.log(data);
+      });
+
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+
+      async function comparisonChecker() {
+        let keys;
+        try {
+          keys = await getKeyData();
+        } catch (error) {
+          console.error(error);
+        }
+        await sleep(2000);
+        console.log(keys);
+        var output = [];
+        keys.forEach(function(dataRow,index) {
+          dataRow[1].forEach(function (dataKey) {
+            for (var x = index + 1; x < keys.length; x++) {
+              keys[x][1].forEach(function (matchDataKey) {
+                if (dataKey == matchDataKey) {
+                  output.push([dataRow[0],dataKey,keys[x][0]]);
+                }
+              });
+            }
+          });
+        });
+        return output;
+      }
+
+      function getAllKeys(object) {
+	      var objectKeys = Object.keys(object);
+	      var output = [];
+
+      	objectKeys.forEach(function(key, index) {
+          if (typeof object == 'object') {
+            output.push(key);
+          }
+      		if (typeof object[key] == "object" && object[key] !== null) {
+      			if (object[key] instanceof Array) {
+      				for (var x = 0; x < object[key].length; x++) {
+      					var tempArray = getAllKeys(object[key][0]);
+      					tempArray.forEach(function(arrayRow) {
+      						output.push(arrayRow);
+      					});
+      				}
+      			} else {
+      				var newKeys = getAllKeys(object[key]);
+      				newKeys.forEach(function(array) {
+      					output.push(array);
+      				});
+      			}
+      		}
+      	});
+
+      	return output;
+      }
+    </script>
+  </body>
+</html>

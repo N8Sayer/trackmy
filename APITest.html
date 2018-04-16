@@ -1,0 +1,85 @@
+<!-- This page only exists to be ran as a web app to test a security weakness -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      button#plus {
+        position: absolute;
+        top: 10px;
+        right: 30px;
+        font-size: 30px;
+      }
+      button#minus {
+        position: absolute;
+        top: 10px;
+        right: 75px;
+        font-size: 30px;
+        padding: 0px 10px 2px 10px;
+      }
+      div {
+        margin-top: 25px;
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <span>Regulation Number </span><input id='start' type='text' value='00643169929203' oninput="test(this.value)"><br>
+    <!-- <button type='button' onclick='test()'>Start</button> -->
+    <div id='body'></div>
+
+    <script>
+    function test(regNumber) {
+      console.log('Checking API');
+	var url = "https://api.fda.gov/device/udi.json?search=";
+	// var regNumber = document.getElementById("start").value;
+	url += `id:${regNumber}`;
+
+	$.ajax({
+		url: url
+	}).done(function(data) {
+		console.log(data);
+    // var json = JSON.parse(data);
+		// var newUrl = "https://api.fda.gov/device/recall.json?search=";
+
+		// data.results[0].openfda.k_number.forEach(function(kNumber) {
+		// 	newUrl += `k_number:${kNumber}+`;
+		// });
+		// console.log(newUrl);
+    var newUrl = "https://api.fda.gov/device/recall.json?search=";
+    var deviceClass = data.results[0].product_codes[0].openfda.device_class;
+    var deviceName = data.results[0].product_codes[0].openfda.device_name;
+    var medicalSpecialtyDescription = data.results[0].product_codes[0].openfda.medical_specialty_description;
+    var regulationNumber = data.results[0].product_codes[0].openfda.regulation_number;
+
+    if (deviceClass) {
+      newUrl += `device_class:${deviceClass}`;
+    }
+    if (deviceName) {
+      newUrl += `+AND+device_name:${deviceName}`;
+    }
+    if (medicalSpecialtyDescription) {
+      newUrl += `+AND+medical_specialty_description:${medicalSpecialtyDescription}`;
+    }
+    if (regulationNumber) {
+      newUrl += `+AND+regulation_number:${regulationNumber}`;
+    }
+    newUrl = encodeURI(newUrl);
+    console.log(newUrl);
+		$.ajax({
+			url: newUrl
+		}).done(function(newData) {
+			console.log(newData);
+		});
+	});
+
+	// var adverseUrl = `https://api.fda.gov/device/event.json?search=regulation_number:${regNumber}`;
+	// $.ajax({
+	// 	url: adverseUrl
+	// }).done(function(data) {
+	// 	console.log(data);
+	// });
+}
+</script>
+  </body>
+</html>
